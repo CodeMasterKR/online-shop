@@ -7,13 +7,13 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config'; // <-- Import ConfigService
+import { ConfigService } from '@nestjs/config'; 
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../prisma/prisma.service'; // <-- PrismaService yo'lini tekshiring
-import { MailService } from '../../services/mail/mail.service'; // <-- MailService yo'lini tekshiring
-import { RegisterUserDto } from './dto/register.dto'; // <-- DTO yo'lini tekshiring
-import { ActivateDto } from './dto/activate.dto';   // <-- DTO yo'lini tekshiring
-import { LoginUserDto } from './dto/login.dto';      // <-- DTO yo'lini tekshiring
+import { PrismaService } from '../../prisma/prisma.service'; 
+import { MailService } from '../../services/mail/mail.service'; 
+import { RegisterUserDto } from './dto/register.dto'; 
+import { ActivateDto } from './dto/activate.dto';   
+import { LoginUserDto } from './dto/login.dto';      
 import { User, userRole, userStatus, Session } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { totp } from 'otplib';
