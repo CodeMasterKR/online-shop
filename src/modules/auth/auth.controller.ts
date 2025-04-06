@@ -18,6 +18,8 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { User } from '@prisma/client'; 
+import { SendOtpDto } from './dto/send-otp.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 
 @ApiTags('Authentication') 
@@ -82,5 +84,37 @@ export class AuthController {
     @Req() req: Request 
    ): Promise<{ accessToken: string; user: Omit<User, 'password'> }> {
        return this.authService.login(loginDto, req);
+  }
+
+  @Post('send-otp')
+  @HttpCode(HttpStatus.OK) 
+  @ApiOperation({ summary: 'Send OTP for email verification' }) 
+  @ApiResponse({ status: 200, description: 'OTP sent successfully.'})
+  @ApiResponse({ status: 400, description: 'Bad Request (e.g., user not found, email already verified).' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error (e.g., email sending failed).' })
+  async sendOtp(@Body() sendOtpDto: SendOtpDto): Promise<{ message: string }> {
+    const resultMessage = await this.authService.sendOTP(sendOtpDto);
+    return { message: resultMessage }; 
+  }
+
+  @Post('forget-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send OTP for password reset' })
+  @ApiResponse({ status: 200, description: 'Password reset instructions sent (if email exists).'})
+  @ApiResponse({ status: 500, description: 'Internal Server Error (e.g., email sending failed).' })
+  async forgetPassword(@Body() sendOtpDto: SendOtpDto): Promise<{ message: string }> {
+     const resultMessage = await this.authService.forgetPassword(sendOtpDto);
+     return { message: resultMessage };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset user password using OTP' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully.', type: Object }) 
+  @ApiResponse({ status: 400, description: 'Bad Request (e.g., invalid OTP).' })
+  @ApiResponse({ status: 404, description: 'Not Found (e.g., user not found).' })
+  @ApiResponse({ status: 500, description: 'Internal Server Error.' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<Omit<User, 'password'>> {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

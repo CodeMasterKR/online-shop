@@ -18,6 +18,8 @@ import { User, userRole, userStatus, Session } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { totp } from 'otplib';
 import { Request } from 'express';
+import { SendOtpDto } from './dto/send-otp.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 interface AccessTokenPayload {
   id: string; 
@@ -231,6 +233,100 @@ export class AuthService {
     }
   }
 
-  // --- Boshqa yordamchi metodlar (masalan, refresh token, logout) ---
+  async sendOTP(sendOtpDto: SendOtpDto): Promise<string> {
+    const { email } = sendOtpDto;
 
+    const existingUserByEmail = await this.prisma.user.findUnique({ where: { email } });
+    if (!existingUserByEmail) {
+      throw new BadRequestException(`User with email ${email} not found!`);
+    }
+
+    let otp: string;
+    const otpKeySecret = this.configService.getOrThrow<string>('OTP_KEY'); 
+    try {
+      totp.options = { step: 300, digits: 6 }; 
+      otp = totp.generate(otpKeySecret + email);
+    } catch (error) {
+      console.error('OTP generation failed:', error);
+      throw new InternalServerErrorException('Could not generate verification code.');
+    }
+
+    try {
+      await this.mailService.sendMail(
+        email,
+        'Verify Your Email Address',
+        `Hello,\n\nYour verification code is: ${otp}\n\nPlease use this code within 5 minutes to activate your account.\n\nIf you did not request this, please ignore this email.`
+      );
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      throw new InternalServerErrorException('User registered, but failed to send verification email.');
+    }
+
+    return `Great! We've sent a verification code to your email.`;
+  }
+
+
+  async forgetPassword(sendOtpDto: SendOtpDto): Promise<string> {
+    const { email } = sendOtpDto;
+
+    const existingUserByEmail = await this.prisma.user.findUnique({ where: { email } });
+    if (!existingUserByEmail) {
+      throw new BadRequestException(`User with email ${email} not found!`);
+    }
+
+    let otp: string;
+    const otpKeySecret = this.configService.getOrThrow<string>('OTP_KEY'); 
+    try {
+      totp.options = { step: 300, digits: 6 }; 
+      otp = totp.generate(otpKeySecret + email);
+    } catch (error) {
+      console.error('OTP generation failed:', error);
+      throw new InternalServerErrorException('Could not generate verification code.');
+    }
+
+    try {
+      await this.mailService.sendMail(
+        email,
+        'Verify Your Email Address',
+        `Hello,\n\nYour verification code is: ${otp}\n\nPlease use this code within 5 minutes to activate your account.\n\nIf you did not request this, please ignore this email.`
+      );
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      throw new InternalServerErrorException('User registered, but failed to send verification email.');
+    }
+
+    return `Great! We've sent a verification code to your email for reset password!.`;
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<Omit<User, 'password'>> {
+    const { email, otp, newPassword } = resetPasswordDto;
+    const otpKeySecret = this.configService.getOrThrow<string>('OTP_KEY'); 
+
+    try {
+      const isCorrect = totp.check(otp, otpKeySecret + email);
+      if (!isCorrect) {
+        throw new BadRequestException('Invalid or expired OTP.');
+      }
+
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        throw new NotFoundException(`User with email ${email} not found.`);
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { email },
+        data: { password: newPassword },
+      });
+
+      const { password, ...result } = updatedUser;
+      return result;
+
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      console.error(`Account activation failed for ${email}:`, error);
+      throw new InternalServerErrorException('Failed to activate account.');
+    }
+  }
 }
