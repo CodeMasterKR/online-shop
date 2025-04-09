@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto'; 
@@ -23,7 +24,10 @@ import {
   ApiQuery,
   ApiBody,
 } from '@nestjs/swagger';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
+
+@UseInterceptors(CacheInterceptor)
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoryController {
@@ -57,6 +61,7 @@ export class CategoryController {
     return this.categoryService.findAll(queryDto);
   }
 
+  @CacheTTL(40 * 1000)
   @Get(':id')
   @ApiOperation({ summary: 'ID bo\'yicha bitta kategoriyani olish' })
   @ApiParam({ name: 'id', description: 'Kategoriya UUID si', type: String, format: 'uuid', example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef' })

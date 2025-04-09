@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException, 
 } from '@nestjs/common';
@@ -9,10 +10,12 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PrismaService } from 'src/prisma/prisma.service'; 
 import { QueryCategoryDto } from './dto/query-category.dto';
 import { Prisma, Category } from '@prisma/client'; 
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class CategoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, @Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
     const isExist = await this.prisma.category.findFirst({
